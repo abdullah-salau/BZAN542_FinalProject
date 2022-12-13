@@ -16,3 +16,4 @@ table(is.na(df))
 sapply(df, function(x) sum(is.na(x))/length(x))*100
 
 #Columns with NA values: Avg.Monthly.Long.Distance.Charges and Avg.Monthly.GB.Download
+#commir test
