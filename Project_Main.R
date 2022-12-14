@@ -26,7 +26,7 @@ summary(df)
 table(is.na(df))
 sapply(df, function(x) sum(is.na(x))/length(x))*100
 
-#Columns with NA values: Avg.Monthly.Long.Distance.Charges and Avg.Monthly.GB.Download
+#Columns with NA values (not include=ing character features): Avg.Monthly.Long.Distance.Charges and Avg.Monthly.GB.Download
 
 #Checking how many '0' values in missing variables
 nrow(df[df$Avg.Monthly.GB.Download==0,])
@@ -104,12 +104,78 @@ plot_grid(plotlist = my_plots)
 #For NISdf: Customer ID, Longitude, Latitude, Zipcode, Internet Service, Phone Service, Internet TYpe, Avg Monthly GB DOwnload,
 #Online Security, Internet...
 
+#For ISdf
+fullISdf = ISdf
+ISdf = subset(ISdf, select = -c(Customer.ID, Longitude, Latitude, Zip.Code, Internet.Service))
+View(ISdf)
 
+#For NISdf
+fullNISdf = NISdf
+NISdf = subset(NISdf, select = -c(Customer.ID, Longitude, Latitude, Zip.Code, Internet.Service, Phone.Service, Internet.Type, Avg.Monthly.GB.Download,
+                                  Online.Security, Online.Backup, Device.Protection.Plan, Premium.Tech.Support, Streaming.TV, Streaming.Movies, 
+                                  Streaming.Music, Unlimited.Data))
+View(NISdf)
 
+#setting Customer.Status type to factor
+set(ISdf,j='Customer.Status',value = factor(ISdf[['Customer.Status']]))
+set(NISdf,j='Customer.Status',value = factor(NISdf[['Customer.Status']]))
 
+#Removing Churn Category and Churn Reason for both datasets
+ISdf = subset(ISdf, select = -c(Churn.Category, Churn.Reason))
+NISdf = subset(NISdf, select = -c(Churn.Category, Churn.Reason))
 
+#Removing Total.Extra.Data.Charges (Only contains 0 values) for NISdf
+NISdf = subset(NISdf, select = -c(Total.Extra.Data.Charges))
 
+#Missing values for both datasets after subsetting for important features
+summary(ISdf)
+summary(NISdf)
 
+#Imputation: For ISdf, Replacing NA values in Avg.Monthly.Long.Distance.Charges and Multiple.Line with 0 and 'No' respectively
+#Go through each value of column, replace NA values
+#count = 0
+for(j in 1:nrow(ISdf))
+{
+  if(is.na(ISdf[j,'Avg.Monthly.Long.Distance.Charges']))
+  {
+    #count = count + 1
+    ISdf[j,'Avg.Monthly.Long.Distance.Charges'] = 0
+  }
+}
+#count = 0
+for(j in 1:nrow(ISdf))
+{
+  if(ISdf[j,'Multiple.Lines']=='')
+  {
+    #count = count + 1
+    ISdf[j,'Multiple.Lines'] = 'No'
+  }
+}
+
+#There does not seem to be any missing values for the NISdf
+
+#Before splitting, we will standardize the numerical features of both datasets
+trainParams = preProcess(ISdf, method=c("center", "scale"))
+ISdf_standardized = predict(trainParams, ISdf)
+summary(ISdf_standardized)
+
+trainParams2 = preProcess(NISdf, method=c("center", "scale"))
+NISdf_standardized = predict(trainParams2, NISdf)
+summary(NISdf_standardized)
+
+#Splitting both datasets into training and testing datasets with 75:25 ratio
+#We use the createDataPartition function to maintain the event rate in both training and testing dataset
+trainIndex <- createDataPartition(ISdf_standardized$Customer.Status, p = .75,
+                                  list = FALSE,
+                                  times = 1)
+trainISdf <- ISdf_standardized[trainIndex,]
+testISdf <- ISdf_standardized[-trainIndex,]
+View(trainISdf)
+View(testISdf)
+
+#Handling Missing Values
+summary(NISdf)
+summary(ISdf)
 
 
 
