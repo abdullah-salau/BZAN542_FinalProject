@@ -173,17 +173,85 @@ testISdf <- ISdf_standardized[-trainIndex,]
 View(trainISdf)
 View(testISdf)
 
-#Handling Missing Values
-summary(NISdf)
-summary(ISdf)
+#For NISdf
+trainIndex2 <- createDataPartition(NISdf_standardized$Customer.Status, p = .75,
+                                  list = FALSE,
+                                  times = 1)
+trainNISdf <- NISdf_standardized[trainIndex2,]
+testNISdf <- NISdf_standardized[-trainIndex2,]
+View(trainNISdf)
+View(testNISdf)
 
+#Creating Model
+#ISdf
+library(randomForest)
 
+#Deleting City Feature
+table(ISdf_standardized$City)
+trainISdf = subset(trainISdf, select = -c(City))
+testISdf = subset(testISdf, select = -c(City))
 
+trainNISdf = subset(trainNISdf, select = -c(City))
+testNISdf = subset(testNISdf, select = -c(City))
 
+rf_A <- randomForest(Customer.Status ~ .,
+                     data = trainISdf,
+)
+rfTest_A = subset(testISdf, select = -c(Customer.Status))
+View(rfTest_A)
 
+##RFPred_A: 
+RFpred_A <- predict(object=rf_A, rfTest_A, type='prob')#, probability=TRUE)#probabilities
+#head(attr(RFpred, "probabilities"))
+head(RFpred_A)
+response_A <- predict(object=rf_A, rfTest_A, type='response')#only the labels
+head(response_A)
+correctResponse_A = testISdf[,"Customer.Status"]#correct response labels for rf modelA
 
+table(response_A, correctResponse_A)
+#         correctResponse_A
+#response_A Churned Stayed
+#Churned     293     61
+#Stayed      146    811
 
+#Scores, Precision, F1 Score
+confusionMatrix(response_A, correctResponse_A, mode="everything")
 
+#For NISdf
+rf_B <- randomForest(Customer.Status ~ .,
+                     data = trainNISdf,
+)
+rfTest_B = subset(testNISdf, select = -c(Customer.Status))
+View(rfTest_B)
+
+##RFPred_B: 
+RFpred_B <- predict(object=rf_B, rfTest_B, type='prob')#, probability=TRUE)#probabilities
+#head(attr(RFpred, "probabilities"))
+head(RFpred_B)
+response_B <- predict(object=rf_B, rfTest_B, type='response')#only the labels
+head(response_B)
+correctResponse_B = testNISdf[,"Customer.Status"]#correct response labels for rf modelA
+
+table(response_B, correctResponse_B)
+#         correctResponse_A
+#response_A Churned Stayed
+#Churned     293     61
+#Stayed      146    811
+
+#Scores, Precision, F1 Score
+confusionMatrix(response_B, correctResponse_B, mode="everything")
+
+#Run tests on other models
+#Focus on whichever one has highest F1 scores
+#Do PCA to cut down on features (Could also do correlation matrix to drop features as well).
+#Huge objective is to improve recall rate for accounts that have churned
+#Handle Data imbalance problem for NISdf
+#Parameter tuning
+#Report improvements
+#Introduce usefulness of employing Churn probabilities and use Slide 6 diagram as example of proposed customer retention strategy
+
+# Our conclusion should have an assertive conclusion on which model will be best for prediction, a discussion of its results,
+#and how it compares to the other models we tested. 
 
 
 
