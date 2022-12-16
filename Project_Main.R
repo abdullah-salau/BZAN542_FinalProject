@@ -356,6 +356,76 @@ corrplot(M, method='color')
 #PCA
 pca = prcomp(knnTrain_A, center = TRUE,scale. = TRUE)
 summary(pca)
+
+#Retrying randomforest model on updated training dataset:
+newTrain = subset(trainISdf, select=-c(Total.Revenue, Total.Extra.Data.Charges, Contract, Unlimited.Data, Streaming.Music, Streaming.Movies,
+                                      Streaming.TV, Premium.Tech.Support, Device.Protection.Plan, Online.Backup, Online.Security))
+
+
+rf2_A <- randomForest(Customer.Status ~ .,
+                     data = newTrain,
+)
+rfTest2_A = subset(testISdf, select = -c(Customer.Status,Total.Revenue, Total.Extra.Data.Charges, Contract, Unlimited.Data, Streaming.Music, Streaming.Movies,
+                                         Streaming.TV, Premium.Tech.Support, Device.Protection.Plan, Online.Backup, Online.Security))
+View(rfTest2_A)
+
+##RFPred_A: 
+RFpred2_A <- predict(object=rf2_A, rfTest2_A, type='prob')#, probability=TRUE)#probabilities
+#head(attr(RFpred, "probabilities"))
+head(RFpred2_A)
+response2_A <- predict(object=rf2_A, rfTest2_A, type='response')#only the labels
+head(response2_A)
+correctResponse2_A = testISdf[,"Customer.Status"]#correct response labels for rf modelA
+
+table(response2_A, correctResponse2_A)
+#         correctResponse_A
+#response_A Churned Stayed
+#Churned     293     61
+#Stayed      146    811
+
+#Scores, Precision, F1 Score
+confusionMatrix(response2_A, correctResponse2_A, mode="everything")
+
+#Including more features
+newTrain2 = subset(trainISdf, select=-c(Total.Revenue, Total.Extra.Data.Charges, Contract, Unlimited.Data, Streaming.Music, Streaming.Movies,
+                                       Streaming.TV, Premium.Tech.Support))#, Device.Protection.Plan, Online.Backup, Online.Security))
+
+
+rf3_A <- randomForest(Customer.Status ~ .,
+                      data = newTrain2,
+)
+rfTest3_A = subset(testISdf, select = -c(Customer.Status,Total.Revenue, Total.Extra.Data.Charges, Contract, Unlimited.Data, Streaming.Music, Streaming.Movies,
+                                         Streaming.TV, Premium.Tech.Support))#, Device.Protection.Plan, Online.Backup, Online.Security))
+View(rfTest3_A)
+
+##RFPred_A: 
+RFpred3_A <- predict(object=rf3_A, rfTest3_A, type='prob')#, probability=TRUE)#probabilities
+#head(attr(RFpred, "probabilities"))
+head(RFpred3_A)
+response3_A <- predict(object=rf3_A, rfTest3_A, type='response')#only the labels
+head(response3_A)
+correctResponse3_A = testISdf[,"Customer.Status"]#correct response labels for rf modelA
+
+table(response3_A, correctResponse3_A)
+#         correctResponse_A
+#response_A Churned Stayed
+#Churned     293     61
+#Stayed      146    811
+
+#Scores, Precision, F1 Score
+confusionMatrix(response3_A, correctResponse3_A, mode="everything")
+
+
+
+
+
+
+
+
+
+
+
+
 #Focus on whichever one has highest F1 scores
 #Do PCA to cut down on features (Could also do correlation matrix to drop features as well).
 #Huge objective is to improve recall rate for accounts that have churned
