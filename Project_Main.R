@@ -8,6 +8,13 @@ library(h2o)
 library(caret)
 #install.packages("cowplot")
 library(cowplot)
+library(dplyr)
+library(caTools)
+library(ROCR)
+library(caret)
+library(e1071)
+library(class)
+library(corrplot)
 
 
 setwd("C:/Users/asalau/OneDrive - University of Tennessee/UTK Documents/Classes/Data Mining for Business/BZAN542_FinalProject")
@@ -238,10 +245,117 @@ table(response_B, correctResponse_B)
 #Churned     293     61
 #Stayed      146    811
 
-#Scores, Precision, F1 Score
+#Scores, Precision, Recall, F1 Score
 confusionMatrix(response_B, correctResponse_B, mode="everything")
 
 #Run tests on other models
+#Logistic Regression
+#Training Model (ISdf)
+logModel_A <- glm(Customer.Status ~ ., 
+                      data = trainISdf, 
+                      family = "binomial")
+logModel_A
+
+summary(logModel_A)
+#Modifying test dataset for logistic regression prediction
+# dummy <- dummyVars(" ~ .", data=testISdf)
+# logTest_A <- data.frame(predict(dummy, newdata = testISdf))
+# logTest_A = subset(logTest_A, select = -c(Gender.Female,Married.No,Offer.None,Phone.Service.No,Multiple.Lines., Multiple.Lines.No, 
+#                                           Internet.Type., Internet.Type.Cable, Online.Security., Online.Security.No, Online.Backup., Online.Backup.No,
+#                                           Device.Protection.Plan., Device.Protection.Plan.No, Premium.Tech.Support., Premium.Tech.Support.No,
+#                                           Streaming.TV., Streaming.TV.No, Streaming.Movies., Streaming.Movies.No, Streaming.Music., Streaming.Music.No,
+#                                           Unlimited.Data., Unlimited.Data.No, Contract.Month.to.Month, Paperless.Billing.No, Payment.Method.Bank.Withdrawal,
+#                                           Customer.Status.Churned))
+# 
+
+# Predict test data based on model
+logTest_A = subset(testISdf, select = -c(Customer.Status))
+predict_reg <- predict(logModel_A, 
+                       logTest_A, type = "response")
+predict_reg
+logResponse_A <- ifelse(predict_reg >0.5, 1, 0)
+
+log_correctResponse_A <- ifelse(correctResponse_A =='Churned', 0, 1)
+log_correctResponse_A<- as.factor(log_correctResponse_A)
+logResponse_A<- as.factor(logResponse_A)
+confusionMatrix((logResponse_A), (log_correctResponse_A), mode="everything")
+
+#Training Model (NISdf)
+logModel_B <- glm(Customer.Status ~ ., 
+                  data = trainNISdf, 
+                  family = "binomial")
+logModel_B
+
+summary(logModel_B)
+
+# Predict test data based on model
+logTest_B = subset(testNISdf, select = -c(Customer.Status))
+predict_reg_B <- predict(logModel_B, 
+                       logTest_B, type = "response")
+predict_reg_B
+logResponse_B <- ifelse(predict_reg_B >0.5, 1, 0)
+
+log_correctResponse_B <- ifelse(correctResponse_B =='Churned', 0, 1)
+log_correctResponse_B<- as.factor(log_correctResponse_B)
+logResponse_B<- as.factor(logResponse_B)
+confusionMatrix((logResponse_B), (log_correctResponse_B), mode="everything")
+
+#kNN Model
+#ISdf
+#Training Model
+dummy <- dummyVars(" ~ .", data=trainISdf)
+knnTrain <- data.frame(predict(dummy, newdata = trainISdf))
+knnTrain = subset(knnTrain, select = -c(Gender.Female,Married.No,Offer.None,Phone.Service.No,Multiple.Lines., Multiple.Lines.No,
+                                          Internet.Type., Internet.Type.Cable, Online.Security., Online.Security.No, Online.Backup., Online.Backup.No,
+                                          Device.Protection.Plan., Device.Protection.Plan.No, Premium.Tech.Support., Premium.Tech.Support.No,
+                                          Streaming.TV., Streaming.TV.No, Streaming.Movies., Streaming.Movies.No, Streaming.Music., Streaming.Music.No,
+                                          Unlimited.Data., Unlimited.Data.No, Contract.Month.to.Month, Paperless.Billing.No, Payment.Method.Bank.Withdrawal,
+                                          Customer.Status.Churned))
+
+dummy <- dummyVars(" ~ .", data=testISdf)
+knnTest <- data.frame(predict(dummy, newdata = testISdf))
+knnTest = subset(knnTest, select = -c(Gender.Female,Married.No,Offer.None,Phone.Service.No,Multiple.Lines., Multiple.Lines.No,
+                                          Internet.Type., Internet.Type.Cable, Online.Security., Online.Security.No, Online.Backup., Online.Backup.No,
+                                          Device.Protection.Plan., Device.Protection.Plan.No, Premium.Tech.Support., Premium.Tech.Support.No,
+                                          Streaming.TV., Streaming.TV.No, Streaming.Movies., Streaming.Movies.No, Streaming.Music., Streaming.Music.No,
+                                          Unlimited.Data., Unlimited.Data.No, Contract.Month.to.Month, Paperless.Billing.No, Payment.Method.Bank.Withdrawal,
+                                          Customer.Status.Churned))
+
+knnTrain_A = subset(knnTrain, select = -c(Customer.Status.Stayed))
+knnTest_A = subset(knnTest, select = -c(Customer.Status.Stayed))
+
+
+#knnTest_A = subset(testISdf, select = -c(Customer.Status))
+#knnTrain_A = subset(trainISdf, select = -c(Customer.Status))
+knn.70_A <- knn(train = knnTrain_A,
+                      test = knnTest_A,
+                      cl = knnTrain$Customer.Status.Stayed,
+                      k = 70)
+knn.70_A
+
+confusionMatrix(knn.70_A,as.factor(knnTest$Customer.Status.Stayed), mode = 'everything')
+
+kList = c(30,40,50,60,80,90,100)
+kList = c(25, 20 ,15,10, 5)
+for(k in kList){
+  knn_A <- knn(train = knnTrain_A,
+                  test = knnTest_A,
+                  cl = knnTrain$Customer.Status.Stayed,
+                  k = k)
+  #knn_A
+  
+  print(confusionMatrix(knn_A,as.factor(knnTest$Customer.Status.Stayed), mode = 'everything'))
+  
+}
+
+
+M<- cor(knnTrain)
+corrplot(M, method='color')
+#We will delete Total Revenue, Total Extra Data Charges, and DSL Internet type.
+
+#PCA
+pca = prcomp(knnTrain_A, center = TRUE,scale. = TRUE)
+summary(pca)
 #Focus on whichever one has highest F1 scores
 #Do PCA to cut down on features (Could also do correlation matrix to drop features as well).
 #Huge objective is to improve recall rate for accounts that have churned
